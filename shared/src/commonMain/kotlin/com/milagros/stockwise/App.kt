@@ -1,4 +1,4 @@
-package com.milagros.stockwise
+/*package com.milagros.stockwise
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -45,5 +45,35 @@ fun App() {
                 }
             }
         }
+    }
+}
+*/
+package com.milagros.stockwise
+
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.milagros.stockwise.data.remote.supabaseClient
+import com.milagros.stockwise.data.repository.ProductoRepositoryImp
+
+@Composable
+fun App() {
+    MaterialTheme {
+        var text by remember { mutableStateOf("Cargando...") }
+
+        LaunchedEffect(Unit) {
+            text = try {
+                ProductoRepositoryImp(supabaseClient).getProductos()
+                    .joinToString("\n") { "${it.nombre}: ${it.cantidad} u." }
+            } catch (e: Exception) {
+                "Error: ${e.message}"
+            }
+        }
+
+        Text(text, modifier = Modifier.safeContentPadding().padding(16.dp))
     }
 }
