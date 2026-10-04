@@ -9,5 +9,5 @@ data class Producto(
     val stockMinimo: Int,
     val precio: Double,
 ) {
-    val isLowStock: Boolean get() = cantidad <= stockMinimo
+    val tieneStockBajo: Boolean get() = cantidad <= stockMinimo
 }
