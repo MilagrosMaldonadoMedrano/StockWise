@@ -48,6 +48,7 @@ fun App() {
     }
 }
 */
+/*
 package com.milagros.stockwise
 
 import androidx.compose.foundation.layout.padding
@@ -75,5 +76,22 @@ fun App() {
         }
 
         Text(text, modifier = Modifier.safeContentPadding().padding(16.dp))
+    }
+}*/
+
+package com.milagros.stockwise
+
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import com.milagros.stockwise.di.appModule
+import com.milagros.stockwise.presentation.lista.ProductoListScreen
+import org.koin.compose.KoinApplication
+
+@Composable
+fun App() {
+    KoinApplication(application = { modules(appModule) }) {
+        MaterialTheme {
+            ProductoListScreen()
+        }
     }
 }
