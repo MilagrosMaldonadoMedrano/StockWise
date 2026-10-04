@@ -1,0 +1,70 @@
+# Integración continua: en cada push o pull request a main compila
+# la app Android (y guarda el APK) y el código compartido para iOS.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # permite correrlo a mano desde la pestaña Actions
+
+# Si hacés dos push seguidos, cancela la corrida vieja y deja solo la nueva
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android (APK debug)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      # Mismo JDK que usa el proyecto (Azul Zulu 21, ver gradle-daemon-jvm.properties)
+      - name: Instalar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+
+      # Configura Gradle y cachea las dependencias entre corridas
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar APK debug
+        run: ./gradlew :androidApp:assembleDebug
+
+      - name: Guardar el APK como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockwise-debug-apk
+          path: androidApp/build/outputs/apk/debug/*.apk
+
+  ios:
+    name: iOS (compilación del módulo shared)
+    runs-on: macos-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Kotlin/Native descarga su compilador en ~/.konan; cachearlo ahorra minutos
+      - name: Cachear Kotlin/Native
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
+      # Compila y linkea el framework que usaría la app de iOS (simulador)
+      - name: Compilar framework iOS
+        run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
