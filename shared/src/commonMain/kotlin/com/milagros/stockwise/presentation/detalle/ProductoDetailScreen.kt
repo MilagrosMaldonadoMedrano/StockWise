@@ -5,7 +5,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -17,7 +19,9 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import stockwise.shared.generated.resources.Res
+import stockwise.shared.generated.resources.ic_add
 import stockwise.shared.generated.resources.ic_arrow_back
+import stockwise.shared.generated.resources.ic_remove
 
 // Versión "con estado": obtiene el ViewModel (pasándole el id) y observa su estado
 @Composable
@@ -31,6 +35,9 @@ fun ProductoDetailScreen(
         state = state,
         onVolver = onVolver,
         onReintentar = viewModel::cargarProductos,
+        onIncrementar = viewModel::incrementarStock,
+        onDecrementar = viewModel::decrementarStock,
+        onMensajeMostrado = viewModel::onMensajeMostrado,
     )
 }
 
@@ -41,8 +48,23 @@ fun ProductoDetailContent(
     state: ProductoDetailUiState,
     onVolver: () -> Unit,
     onReintentar: () -> Unit,
+    onIncrementar: () -> Unit,
+    onDecrementar: () -> Unit,
+    onMensajeMostrado: () -> Unit,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Muestra el mensaje una sola vez y avisa al ViewModel para que lo borre
+    val mensaje = (state as? ProductoDetailUiState.Exito)?.mensaje
+    LaunchedEffect(mensaje) {
+        if (mensaje != null) {
+            snackbarHostState.showSnackbar(mensaje)
+            onMensajeMostrado()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Detalle") },
@@ -68,14 +90,24 @@ fun ProductoDetailContent(
                     Button(onClick = onReintentar) { Text("Reintentar") }
                 }
 
-                is ProductoDetailUiState.Exito -> ProductoDetalle(state.producto)
+                is ProductoDetailUiState.Exito -> ProductoDetalle(
+                    producto = state.producto,
+                    ajustando = state.ajustando,
+                    onIncrementar = onIncrementar,
+                    onDecrementar = onDecrementar,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ProductoDetalle(producto: Producto) {
+private fun ProductoDetalle(
+    producto: Producto,
+    ajustando: Boolean,
+    onIncrementar: () -> Unit,
+    onDecrementar: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -92,19 +124,38 @@ private fun ProductoDetalle(producto: Producto) {
 
         // Stock: el dato principal de la pantalla
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Stock actual", style = MaterialTheme.typography.labelLarge)
-                Text(
-                    "${producto.cantidad} u.",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                if (producto.tieneStockBajo) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Stock actual", style = MaterialTheme.typography.labelLarge)
                     Text(
-                        "Stock bajo (mínimo: ${producto.stockMinimo} u.)",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelLarge,
+                        "${producto.cantidad} u.",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
                     )
+                    if (producto.tieneStockBajo) {
+                        Text(
+                            "Stock bajo (mínimo: ${producto.stockMinimo} u.)",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalIconButton(
+                        onClick = onDecrementar,
+                        enabled = !ajustando && producto.cantidad > 0,
+                    ) {
+                        Icon(painterResource(Res.drawable.ic_remove), contentDescription = "Restar 1")
+                    }
+                    FilledTonalIconButton(
+                        onClick = onIncrementar,
+                        enabled = !ajustando,
+                    ) {
+                        Icon(painterResource(Res.drawable.ic_add), contentDescription = "Sumar 1")
+                    }
                 }
             }
         }

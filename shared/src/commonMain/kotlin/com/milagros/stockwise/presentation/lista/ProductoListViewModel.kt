@@ -45,7 +45,7 @@ class ProductoListViewModel(
             } catch (e: CancellationException) {
                 throw e // la corrutina se canceló (ej. se cerró la pantalla): no es un error
             } catch (e: Exception) {
-                error.value = e.message ?: "No se pudieron cargar los productos"
+                error.value = "No se pudieron cargar los productos. Revisá tu conexión."
             }
         }
     }
