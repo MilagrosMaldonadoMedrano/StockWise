@@ -1,5 +1,5 @@
-# Integración continua: en cada push o pull request a main compila
-# la app Android (y guarda el APK) y el código compartido para iOS.
+# Integración continua: en cada push o pull request a main corre los tests,
+# compila la app Android (y guarda el APK) y el código compartido para iOS.
 name: CI
 
 on:
@@ -32,6 +32,10 @@ jobs:
       # Configura Gradle y cachea las dependencias entre corridas
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      # Corre los tests de commonTest en la JVM
+      - name: Tests unitarios
+        run: ./gradlew :shared:testAndroidHostTest
 
       - name: Compilar APK debug
         run: ./gradlew :androidApp:assembleDebug
@@ -68,3 +72,7 @@ jobs:
       # Compila y linkea el framework que usaría la app de iOS (simulador)
       - name: Compilar framework iOS
         run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
+
+      # Los mismos tests de commonTest, pero compilados con Kotlin/Native y ejecutados en el simulador
+      - name: Tests unitarios (iOS)
+        run: ./gradlew :shared:iosSimulatorArm64Test
