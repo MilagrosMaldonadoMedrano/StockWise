@@ -23,6 +23,6 @@ data class ProductoRequestDto(
     val sku: String? = null,
     val categoria: String? = null,
     val cantidad: Int,
-    val stockMinimo: Int,
+    @SerialName("stock_minimo") val stockMinimo: Int,
     val precio: Double,
 )
