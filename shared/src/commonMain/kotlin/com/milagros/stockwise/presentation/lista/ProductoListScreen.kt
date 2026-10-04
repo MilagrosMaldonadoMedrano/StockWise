@@ -17,12 +17,14 @@ import org.koin.compose.viewmodel.koinViewModel
 // Versión "con estado": obtiene el ViewModel y observa su estado
 @Composable
 fun ProductoListScreen(
+    onProductoClick: (id: String) -> Unit,
     viewModel: ProductoListViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ProductoListContent(
         state = state,
         onReintentar = viewModel::cargarProductos,
+        onProductoClick = onProductoClick,
     )
 }
 
@@ -32,6 +34,7 @@ fun ProductoListScreen(
 fun ProductoListContent(
     state: ProductoListUiState,
     onReintentar: () -> Unit,
+    onProductoClick: (id: String) -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -63,7 +66,10 @@ fun ProductoListContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(state.productos, key = { it.id ?: it.nombre }) { producto ->
-                        ProductoCard(producto)
+                        ProductoCard(
+                            producto = producto,
+                            onClick = { producto.id?.let(onProductoClick) },
+                        )
                     }
                 }
             }
@@ -72,8 +78,8 @@ fun ProductoListContent(
 }
 
 @Composable
-private fun ProductoCard(producto: Producto) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun ProductoCard(producto: Producto, onClick: () -> Unit) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,

@@ -6,3 +6,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data object ProductoListRoute
+
+@Serializable
+data class ProductoDetailRoute(val id: String)
