@@ -84,14 +84,14 @@ package com.milagros.stockwise
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import com.milagros.stockwise.di.appModule
-import com.milagros.stockwise.presentation.lista.ProductoListScreen
+import com.milagros.stockwise.presentation.navigation.AppNavHost
 import org.koin.compose.KoinApplication
 
 @Composable
 fun App() {
     KoinApplication(application = { modules(appModule) }) {
         MaterialTheme {
-            ProductoListScreen()
+            AppNavHost()
         }
     }
 }
