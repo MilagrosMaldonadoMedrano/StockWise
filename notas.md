@@ -117,4 +117,10 @@ El ViewModel deriva el UiState con combine() + stateIn(WhileSubscribed(5000)).
 - Motivo: main siempre queda en un estado que compila y funciona, y cada cambio queda
   documentado y validado por CI en su PR.
 
-
+// Git: aprendizajes
+- git switch falla si hay cambios sin commitear que el cambio de rama pisaría:
+  git protege el trabajo en lugar de perderlo. Solución: git stash (guardar aparte),
+  cambiar de rama, git stash pop (recuperar).
+- No se puede borrar la rama en la que uno está parado.
+- Después de mergear un PR en GitHub, hay que actualizar main local (git switch main + git pull)
+  ANTES de crear la rama siguiente, para que salga del main actualizado.

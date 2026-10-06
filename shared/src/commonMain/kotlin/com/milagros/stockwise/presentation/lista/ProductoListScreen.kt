@@ -5,7 +5,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -18,6 +20,8 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ProductoListScreen(
     onProductoClick: (id: String) -> Unit,
+    mensaje: String?,                // mensaje que llega de otra pantalla (ej. "producto eliminado")
+    onMensajeMostrado: () -> Unit,
     viewModel: ProductoListViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -25,6 +29,8 @@ fun ProductoListScreen(
         state = state,
         onReintentar = viewModel::cargarProductos,
         onProductoClick = onProductoClick,
+        mensaje = mensaje,
+        onMensajeMostrado = onMensajeMostrado,
     )
 }
 
@@ -35,8 +41,19 @@ fun ProductoListContent(
     state: ProductoListUiState,
     onReintentar: () -> Unit,
     onProductoClick: (id: String) -> Unit,
+    mensaje: String?,
+    onMensajeMostrado: () -> Unit,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(mensaje) {
+        if (mensaje != null) {
+            snackbarHostState.showSnackbar(mensaje)
+            onMensajeMostrado()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("StockWise") },

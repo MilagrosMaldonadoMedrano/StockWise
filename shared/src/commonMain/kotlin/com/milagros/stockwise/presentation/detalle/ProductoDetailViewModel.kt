@@ -2,6 +2,7 @@ package com.milagros.stockwise.presentation.detalle
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.milagros.stockwise.domain.model.Producto
 import com.milagros.stockwise.domain.repository.ProductoRepository
 import com.milagros.stockwise.domain.usecase.AjustarStockUseCase
 import com.milagros.stockwise.domain.usecase.StockNegativoException
@@ -16,19 +17,24 @@ import kotlinx.coroutines.launch
 class ProductoDetailViewModel(
     private val productoId: String,
     private val repository: ProductoRepository,
-    private val ajustarStock: AjustarStockUseCase,
+    private val ajustarStock: AjustarStockUseCase, //appModule se encarga de generarlo e inyectarlo
 ) : ViewModel() {
 
     private val error = MutableStateFlow<String?>(null)
     private val ajustando = MutableStateFlow(false)
     private val mensaje = MutableStateFlow<String?>(null)
 
+    // Producto que se está eliminando (null = no hay eliminación en curso)
+    private val eliminando = MutableStateFlow<Producto?>(null)
+
     // Busca el producto en la lista del repositorio: si otra pantalla lo modifica, se actualiza solo
     val uiState: StateFlow<ProductoDetailUiState> =
-        combine(repository.productos, error, ajustando, mensaje) { productos, error, ajustando, mensaje ->
+        combine(repository.productos, error, ajustando, mensaje, eliminando) { productos, error, ajustando, mensaje, eliminando ->
             val producto = productos?.find { it.id == productoId }
             when {
-                producto != null -> ProductoDetailUiState.Exito(producto, ajustando, mensaje)
+                // Si desapareció de la lista porque lo eliminamos nosotros, no es un error
+                producto == null && eliminando != null -> ProductoDetailUiState.Eliminado(eliminando.nombre)
+                producto != null -> ProductoDetailUiState.Exito(producto, ajustando, mensaje, eliminando != null)
                 error != null -> ProductoDetailUiState.Error(error)
                 productos == null -> ProductoDetailUiState.Cargando
                 else -> ProductoDetailUiState.Error("El producto no existe o fue eliminado")
@@ -63,7 +69,8 @@ class ProductoDetailViewModel(
 
     private fun ajustar(delta: Int) {
         val producto = (uiState.value as? ProductoDetailUiState.Exito)?.producto ?: return
-        if (ajustando.value) return // ignora toques mientras se guarda el cambio anterior
+        // ignora toques mientras se guarda el cambio anterior o se está eliminando
+        if (ajustando.value || eliminando.value != null) return
         viewModelScope.launch {
             ajustando.value = true
             try {
@@ -78,6 +85,24 @@ class ProductoDetailViewModel(
                 mensaje.value = "No se pudo actualizar el stock. Revisá tu conexión."
             } finally {
                 ajustando.value = false
+            }
+        }
+    }
+
+    // Sin caso de uso: eliminar no tiene reglas de negocio, solo delega en el repositorio
+    fun eliminarProducto() {
+        val producto = (uiState.value as? ProductoDetailUiState.Exito)?.producto ?: return
+        if (ajustando.value || eliminando.value != null) return
+        viewModelScope.launch {
+            eliminando.value = producto
+            try {
+                // Al borrarse, el repositorio lo saca de su lista y el estado pasa a Eliminado
+                repository.deleteProducto(productoId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                eliminando.value = null
+                mensaje.value = "No se pudo eliminar el producto. Revisá tu conexión."
             }
         }
     }
