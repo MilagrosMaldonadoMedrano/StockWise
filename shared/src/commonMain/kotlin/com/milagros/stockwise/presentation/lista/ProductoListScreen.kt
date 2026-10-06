@@ -12,12 +12,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.milagros.stockwise.domain.model.Producto
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import stockwise.shared.generated.resources.Res
+import stockwise.shared.generated.resources.ic_add
 
 // Versión "con estado": obtiene el ViewModel y observa su estado
 @Composable
 fun ProductoListScreen(
     onProductoClick: (id: String) -> Unit,
+<<<<<<< Updated upstream
+=======
+    onNuevoProducto: () -> Unit,
+    mensaje: String?,                // mensaje que llega de otra pantalla (ej. "producto eliminado")
+    onMensajeMostrado: () -> Unit,
+>>>>>>> Stashed changes
     viewModel: ProductoListViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -25,6 +34,12 @@ fun ProductoListScreen(
         state = state,
         onReintentar = viewModel::cargarProductos,
         onProductoClick = onProductoClick,
+<<<<<<< Updated upstream
+=======
+        onNuevoProducto = onNuevoProducto,
+        mensaje = mensaje,
+        onMensajeMostrado = onMensajeMostrado,
+>>>>>>> Stashed changes
     )
 }
 
@@ -35,8 +50,23 @@ fun ProductoListContent(
     state: ProductoListUiState,
     onReintentar: () -> Unit,
     onProductoClick: (id: String) -> Unit,
+<<<<<<< Updated upstream
+=======
+    onNuevoProducto: () -> Unit,
+    mensaje: String?,
+    onMensajeMostrado: () -> Unit,
+>>>>>>> Stashed changes
 ) {
     Scaffold(
+<<<<<<< Updated upstream
+=======
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onNuevoProducto) {
+                Icon(painterResource(Res.drawable.ic_add), contentDescription = "Nuevo producto")
+            }
+        },
+>>>>>>> Stashed changes
         topBar = {
             TopAppBar(
                 title = { Text("StockWise") },
@@ -62,7 +92,8 @@ fun ProductoListContent(
 
                 is ProductoListUiState.Exito -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    // Espacio extra abajo para que el botón "+" no tape la última card
+                    contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(state.productos, key = { it.id ?: it.nombre }) { producto ->

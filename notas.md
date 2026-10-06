@@ -117,4 +117,55 @@ El ViewModel deriva el UiState con combine() + stateIn(WhileSubscribed(5000)).
 - Motivo: main siempre queda en un estado que compila y funciona, y cada cambio queda
   documentado y validado por CI en su PR.
 
+<<<<<<< Updated upstream
+=======
+// Git: aprendizajes
+- git switch falla si hay cambios sin commitear que el cambio de rama pisaría:
+  git protege el trabajo en lugar de perderlo. Solución: git stash (guardar aparte),
+  cambiar de rama, git stash pop (recuperar).
+- No se puede borrar la rama en la que uno está parado.
+- Después de mergear un PR en GitHub, hay que actualizar main local (git switch main + git pull)
+  ANTES de crear la rama siguiente, para que salga del main actualizado.
+
+
+
+## Qué incluye
+- Botón eliminar en el detalle con diálogo de confirmación (Material 3).
+- Al eliminar: vuelve a la lista, el producto desaparece sin recargar (única fuente de verdad)
+  y se muestra un snackbar con el nombre del producto eliminado.
+- El mensaje entre pantallas usa el SavedStateHandle de la pantalla anterior (patrón oficial de navigation).
+- Si falla la red: no navega, muestra el error y conserva el producto.
+- Nuevo estado Eliminado en el UiState del detalle, para no mostrar "producto no encontrado" como error.
+
+## Cómo se probó
+- 4 tests nuevos de ProductoDetailViewModel (13 en total, pasando).
+- Emulador: cancelar, rotar con el diálogo abierto, eliminar un producto de prueba, error de red.
+
+
+// Parte 5: eliminar producto
+- Botón eliminar en el detalle + AlertDialog de confirmación (un borrado no se puede deshacer).
+- El estado "diálogo abierto" vive en la UI (rememberSaveable), no en el ViewModel:
+  es estado puramente visual, no de negocio. Sobrevive a la rotación.
+- Nuevo estado Eliminado(nombre) en ProductoDetailUiState. Problema: al borrar, el repositorio saca
+  el producto de su lista y el detalle mostraba "no existe" como error. Solución: el ViewModel recuerda
+  qué producto está eliminando; si desaparece de la lista y lo estaba eliminando, el estado es Eliminado.
+- Snackbar en la lista tras eliminar: patrón "devolver un resultado" de navigation.
+  El detalle escribe el mensaje en previousBackStackEntry.savedStateHandle y la lista lo observa
+  con getStateFlow; al mostrarlo lo borra para que no se repita.
+- Sin caso de uso para eliminar: no hay regla de negocio, el ViewModel usa el repositorio directo.
+- Si la red falla: no navega, snackbar de error, el producto se conserva.
+
+// Tests
+- Primeros tests de ViewModel (ProductoDetailViewModelTest, 4 tests).
+- Dispatchers.setMain(UnconfinedTestDispatcher()): viewModelScope usa Main, que no existe en tests.
+- uiState usa WhileSubscribed: en el test hay que observarlo (backgroundScope.launch { collect {} })
+  para que se calcule.
+
+// Uso de IA
+- La IA generó los tests con backgroundScope.launch sin dispatcher: el collector no arrancaba antes
+  de las aserciones (el estado quedaba en Cargando). Se corrigió con UnconfinedTestDispatcher(testScheduler)
+  antes de correrlos.
+- Para no borrar datos reales, la prueba de eliminación se hizo con un producto de prueba creado
+  en el Table Editor de Supabase.
+>>>>>>> Stashed changes
 
