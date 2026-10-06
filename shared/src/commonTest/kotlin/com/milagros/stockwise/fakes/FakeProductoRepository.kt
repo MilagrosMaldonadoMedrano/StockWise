@@ -13,6 +13,9 @@ class FakeProductoRepository(
     private val _productos = MutableStateFlow<List<Producto>?>(productosIniciales)
     override val productos: StateFlow<List<Producto>?> = _productos
 
+    // Permite simular un error de red al eliminar
+    var fallarEnDelete = false
+
     // Registra los productos que se mandaron a actualizar, para verificarlos en los tests
     val updates = mutableListOf<Producto>()
 
@@ -33,6 +36,7 @@ class FakeProductoRepository(
     }
 
     override suspend fun deleteProducto(id: String) {
+        if (fallarEnDelete) throw RuntimeException("Error de red simulado")
         _productos.value = _productos.value.orEmpty().filterNot { it.id == id }
     }
 }
