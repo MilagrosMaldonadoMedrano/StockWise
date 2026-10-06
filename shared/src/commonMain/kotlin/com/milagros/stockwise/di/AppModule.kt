@@ -5,6 +5,7 @@ import com.milagros.stockwise.data.repository.ProductoRepositoryImp
 import com.milagros.stockwise.domain.repository.ProductoRepository
 import com.milagros.stockwise.domain.usecase.AjustarStockUseCase
 import com.milagros.stockwise.presentation.detalle.ProductoDetailViewModel
+import com.milagros.stockwise.presentation.formulario.ProductoFormViewModel
 import com.milagros.stockwise.presentation.lista.ProductoListViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
@@ -21,4 +22,6 @@ val appModule = module {
     viewModel { params ->
         ProductoDetailViewModel(productoId = params.get(), repository = get(), ajustarStock = get())
     }
+    // id null = crear; getOrNull porque parametersOf(null) no trae valor
+    viewModel { params -> ProductoFormViewModel(productoId = params.getOrNull(), repository = get()) }
 }

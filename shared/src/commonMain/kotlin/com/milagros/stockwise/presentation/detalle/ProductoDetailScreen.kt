@@ -25,6 +25,7 @@ import stockwise.shared.generated.resources.Res
 import stockwise.shared.generated.resources.ic_add
 import stockwise.shared.generated.resources.ic_arrow_back
 import stockwise.shared.generated.resources.ic_delete
+import stockwise.shared.generated.resources.ic_edit
 import stockwise.shared.generated.resources.ic_remove
 
 // Versión "con estado": obtiene el ViewModel (pasándole el id) y observa su estado
@@ -32,13 +33,19 @@ import stockwise.shared.generated.resources.ic_remove
 fun ProductoDetailScreen(
     productoId: String,
     onVolver: () -> Unit,
+    onEditar: () -> Unit,
     onEliminado: (nombre: String) -> Unit,
+    mensajeNavegacion: String?,            // mensaje que llega de otra pantalla (ej. "Cambios guardados")
+    onMensajeNavegacionMostrado: () -> Unit,
     viewModel: ProductoDetailViewModel = koinViewModel { parametersOf(productoId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ProductoDetailContent(
         state = state,
         onVolver = onVolver,
+        onEditar = onEditar,
+        mensajeNavegacion = mensajeNavegacion,
+        onMensajeNavegacionMostrado = onMensajeNavegacionMostrado,
         onReintentar = viewModel::cargarProductos,
         onIncrementar = viewModel::incrementarStock,
         onDecrementar = viewModel::decrementarStock,
@@ -54,6 +61,9 @@ fun ProductoDetailScreen(
 fun ProductoDetailContent(
     state: ProductoDetailUiState,
     onVolver: () -> Unit,
+    onEditar: () -> Unit,
+    mensajeNavegacion: String?,
+    onMensajeNavegacionMostrado: () -> Unit,
     onReintentar: () -> Unit,
     onIncrementar: () -> Unit,
     onDecrementar: () -> Unit,
@@ -100,6 +110,12 @@ fun ProductoDetailContent(
             onMensajeMostrado()
         }
     }
+    LaunchedEffect(mensajeNavegacion) {
+        if (mensajeNavegacion != null) {
+            snackbarHostState.showSnackbar(mensajeNavegacion)
+            onMensajeNavegacionMostrado()
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -114,6 +130,12 @@ fun ProductoDetailContent(
                 actions = {
                     // Solo se puede eliminar cuando el producto está cargado y no hay otra operación en curso
                     if (state is ProductoDetailUiState.Exito) {
+                        IconButton(
+                            onClick = onEditar,
+                            enabled = !state.ajustando && !state.eliminando,
+                        ) {
+                            Icon(painterResource(Res.drawable.ic_edit), contentDescription = "Editar")
+                        }
                         IconButton(
                             onClick = { mostrarConfirmacion = true },
                             enabled = !state.ajustando && !state.eliminando,

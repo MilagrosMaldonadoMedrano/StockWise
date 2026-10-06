@@ -117,6 +117,8 @@ El ViewModel deriva el UiState con combine() + stateIn(WhileSubscribed(5000)).
 - Motivo: main siempre queda en un estado que compila y funciona, y cada cambio queda
   documentado y validado por CI en su PR.
 
+<<<<<<< Updated upstream
+=======
 // Git: aprendizajes
 - git switch falla si hay cambios sin commitear que el cambio de rama pisaría:
   git protege el trabajo en lugar de perderlo. Solución: git stash (guardar aparte),
@@ -124,3 +126,89 @@ El ViewModel deriva el UiState con combine() + stateIn(WhileSubscribed(5000)).
 - No se puede borrar la rama en la que uno está parado.
 - Después de mergear un PR en GitHub, hay que actualizar main local (git switch main + git pull)
   ANTES de crear la rama siguiente, para que salga del main actualizado.
+
+
+
+## Qué incluye
+- Botón eliminar en el detalle con diálogo de confirmación (Material 3).
+- Al eliminar: vuelve a la lista, el producto desaparece sin recargar (única fuente de verdad)
+  y se muestra un snackbar con el nombre del producto eliminado.
+- El mensaje entre pantallas usa el SavedStateHandle de la pantalla anterior (patrón oficial de navigation).
+- Si falla la red: no navega, muestra el error y conserva el producto.
+- Nuevo estado Eliminado en el UiState del detalle, para no mostrar "producto no encontrado" como error.
+
+## Cómo se probó
+- 4 tests nuevos de ProductoDetailViewModel (13 en total, pasando).
+- Emulador: cancelar, rotar con el diálogo abierto, eliminar un producto de prueba, error de red.
+
+
+// Parte 5: eliminar producto
+- Botón eliminar en el detalle + AlertDialog de confirmación (un borrado no se puede deshacer).
+- El estado "diálogo abierto" vive en la UI (rememberSaveable), no en el ViewModel:
+  es estado puramente visual, no de negocio. Sobrevive a la rotación.
+- Nuevo estado Eliminado(nombre) en ProductoDetailUiState. Problema: al borrar, el repositorio saca
+  el producto de su lista y el detalle mostraba "no existe" como error. Solución: el ViewModel recuerda
+  qué producto está eliminando; si desaparece de la lista y lo estaba eliminando, el estado es Eliminado.
+- Snackbar en la lista tras eliminar: patrón "devolver un resultado" de navigation.
+  El detalle escribe el mensaje en previousBackStackEntry.savedStateHandle y la lista lo observa
+  con getStateFlow; al mostrarlo lo borra para que no se repita.
+- Sin caso de uso para eliminar: no hay regla de negocio, el ViewModel usa el repositorio directo.
+- Si la red falla: no navega, snackbar de error, el producto se conserva.
+
+// Tests
+- Primeros tests de ViewModel (ProductoDetailViewModelTest, 4 tests).
+- Dispatchers.setMain(UnconfinedTestDispatcher()): viewModelScope usa Main, que no existe en tests.
+- uiState usa WhileSubscribed: en el test hay que observarlo (backgroundScope.launch { collect {} })
+  para que se calcule.
+
+// Uso de IA
+- La IA generó los tests con backgroundScope.launch sin dispatcher: el collector no arrancaba antes
+  de las aserciones (el estado quedaba en Cargando). Se corrigió con UnconfinedTestDispatcher(testScheduler)
+  antes de correrlos.
+- Para no borrar datos reales, la prueba de eliminación se hizo con un producto de prueba creado
+  en el Table Editor de Supabase.
+>>>>>>> Stashed changes
+
+## Qué incluye
+- Pantalla de formulario reutilizada para crear (FAB "+" en la lista) y editar (lápiz en el detalle).
+- Validación con función pura: obligatorios, enteros no negativos, precio con coma o punto, nombre ≤ 100.
+- Errores por campo; se muestran tras el primer intento de guardar y se actualizan al escribir.
+- SKU duplicado: Postgres 23505 se traduce en el repositorio a SkuDuplicadoException (dominio)
+  y se muestra debajo del campo SKU.
+- Al guardar vuelve a la pantalla anterior con snackbar ("creado" / "Cambios guardados").
+- Teclado numérico, navegación entre campos con el teclado e imePadding.
+
+## Cómo se probó
+- 15 tests nuevos (28 en total), pasando.
+- Emulador contra Supabase: validación, SKU duplicado, crear, editar y eliminar un producto de prueba.
+
+
+// Parte 6: formulario crear/editar
+- Una sola pantalla y ViewModel para crear y editar: ProductoFormRoute(id: String? = null).
+  id null = crear; con id = editar (carga los datos desde la única fuente de verdad).
+- El formulario es un "borrador": tiene su propio MutableStateFlow y no deriva del repositorio.
+  Lo escrito no afecta la lista compartida hasta guardar.
+- Estado como data class (no sealed): en un formulario varias cosas pasan a la vez
+  (editando + errores + guardando).
+- Campos guardados como texto y convertidos al validar (así se puede mostrar "12a" con error).
+- Validación como función pura validarProducto() -> Valido(producto) | Invalido(errores).
+  Acepta coma o punto en el precio; SKU/categoría vacíos -> null; límite de numeric(12,2).
+- UX: errores visibles recién tras el primer intento de guardar, luego en vivo.
+  Teclado numérico, "siguiente" entre campos, "listo" guarda, imePadding para el teclado.
+- SKU duplicado: Postgres devuelve 23505 (unique violation). El repositorio (data) lo traduce a
+  SkuDuplicadoException (domain): presentation no conoce Supabase. Se muestra debajo del campo SKU
+  y se mantiene hasta que se cambie el SKU.
+- Navegación: helpers volverConMensaje / mensajeRecibido / siEstaActiva para no repetir
+  el patrón de "devolver un resultado" en 3 pantallas.
+
+// Tests
+- 15 nuevos (28 propios en total). FakeProductoRepository ahora imita la base:
+  genera ids y rechaza SKUs duplicados.
+
+// QA
+- Probado en emulador contra Supabase real: validación, SKU duplicado (CF-002), crear, editar
+  categoría, eliminar. Se usó un producto de prueba que se borró al final.
+
+// Uso de IA
+- Antes de escribir el manejo del SKU duplicado, Claude Code verificó dentro del .aar de
+  supabase-kt que PostgrestRestException expone "code", en lugar de suponer la API.

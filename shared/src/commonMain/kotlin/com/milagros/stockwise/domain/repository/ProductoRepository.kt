@@ -14,3 +14,7 @@ interface ProductoRepository {
     suspend fun updateProducto(producto: Producto): Producto
     suspend fun deleteProducto(id: String)
 }
+
+// Parte del contrato: create/update la lanzan si el SKU ya lo usa otro producto.
+// Así presentation no necesita conocer los errores de Supabase.
+class SkuDuplicadoException(sku: String?) : IllegalArgumentException("Ya existe un producto con el SKU $sku")
