@@ -7,7 +7,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -21,6 +24,7 @@ import org.koin.core.parameter.parametersOf
 import stockwise.shared.generated.resources.Res
 import stockwise.shared.generated.resources.ic_add
 import stockwise.shared.generated.resources.ic_arrow_back
+import stockwise.shared.generated.resources.ic_delete
 import stockwise.shared.generated.resources.ic_remove
 
 // Versión "con estado": obtiene el ViewModel (pasándole el id) y observa su estado
@@ -28,6 +32,7 @@ import stockwise.shared.generated.resources.ic_remove
 fun ProductoDetailScreen(
     productoId: String,
     onVolver: () -> Unit,
+    onEliminado: (nombre: String) -> Unit,
     viewModel: ProductoDetailViewModel = koinViewModel { parametersOf(productoId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -37,6 +42,8 @@ fun ProductoDetailScreen(
         onReintentar = viewModel::cargarProductos,
         onIncrementar = viewModel::incrementarStock,
         onDecrementar = viewModel::decrementarStock,
+        onEliminar = viewModel::eliminarProducto,
+        onEliminado = onEliminado,
         onMensajeMostrado = viewModel::onMensajeMostrado,
     )
 }
@@ -50,9 +57,40 @@ fun ProductoDetailContent(
     onReintentar: () -> Unit,
     onIncrementar: () -> Unit,
     onDecrementar: () -> Unit,
+    onEliminar: () -> Unit,
+    onEliminado: (nombre: String) -> Unit,
     onMensajeMostrado: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Estado puramente visual (¿está abierto el diálogo?): vive en la UI, no en el ViewModel.
+    // rememberSaveable lo conserva si se rota la pantalla.
+    var mostrarConfirmacion by rememberSaveable { mutableStateOf(false) }
+
+    // Cuando el producto se eliminó, se avisa una sola vez para volver a la lista
+    if (state is ProductoDetailUiState.Eliminado) {
+        LaunchedEffect(Unit) { onEliminado(state.nombre) }
+    }
+
+    if (mostrarConfirmacion && state is ProductoDetailUiState.Exito) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmacion = false },
+            title = { Text("Eliminar producto") },
+            text = { Text("¿Eliminar \"${state.producto.nombre}\"? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarConfirmacion = false
+                        onEliminar()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmacion = false }) { Text("Cancelar") }
+            },
+        )
+    }
 
     // Muestra el mensaje una sola vez y avisa al ViewModel para que lo borre
     val mensaje = (state as? ProductoDetailUiState.Exito)?.mensaje
@@ -73,6 +111,17 @@ fun ProductoDetailContent(
                         Icon(painterResource(Res.drawable.ic_arrow_back), contentDescription = "Volver")
                     }
                 },
+                actions = {
+                    // Solo se puede eliminar cuando el producto está cargado y no hay otra operación en curso
+                    if (state is ProductoDetailUiState.Exito) {
+                        IconButton(
+                            onClick = { mostrarConfirmacion = true },
+                            enabled = !state.ajustando && !state.eliminando,
+                        ) {
+                            Icon(painterResource(Res.drawable.ic_delete), contentDescription = "Eliminar")
+                        }
+                    }
+                },
             )
         },
     ) { padding ->
@@ -81,7 +130,8 @@ fun ProductoDetailContent(
             contentAlignment = Alignment.Center,
         ) {
             when (state) {
-                ProductoDetailUiState.Cargando -> CircularProgressIndicator()
+                ProductoDetailUiState.Cargando,
+                is ProductoDetailUiState.Eliminado -> CircularProgressIndicator()
 
                 is ProductoDetailUiState.Error -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Ocurrió un error", style = MaterialTheme.typography.titleMedium)
@@ -92,7 +142,7 @@ fun ProductoDetailContent(
 
                 is ProductoDetailUiState.Exito -> ProductoDetalle(
                     producto = state.producto,
-                    ajustando = state.ajustando,
+                    ajustando = state.ajustando || state.eliminando,
                     onIncrementar = onIncrementar,
                     onDecrementar = onDecrementar,
                 )

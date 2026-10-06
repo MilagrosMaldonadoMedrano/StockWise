@@ -8,6 +8,9 @@ sealed interface ProductoDetailUiState {
         val producto: Producto,
         val ajustando: Boolean = false, // hay un cambio de stock en curso: se deshabilitan los botones
         val mensaje: String? = null,    // mensaje para mostrar una sola vez en un snackbar
+        val eliminando: Boolean = false, // hay una eliminación en curso
     ) : ProductoDetailUiState
     data class Error(val mensaje: String) : ProductoDetailUiState
+    // El producto se eliminó: la pantalla tiene que volver a la lista
+    data class Eliminado(val nombre: String) : ProductoDetailUiState
 }
