@@ -1,8 +1,8 @@
 package com.milagros.stockwise.data.repository
 
-import com.milagros.stockwise.data.remote.EstadisticaDto
+import com.milagros.stockwise.data.remote.EstadisticaMensualDto
 import com.milagros.stockwise.data.remote.toDomain
-import com.milagros.stockwise.domain.model.EstadisticaProducto
+import com.milagros.stockwise.domain.model.EstadisticaMensual
 import com.milagros.stockwise.domain.repository.StockInsuficienteException
 import com.milagros.stockwise.domain.repository.VentaRepository
 import io.github.jan.supabase.SupabaseClient
@@ -33,9 +33,10 @@ class VentaRepositoryImp(
         }
     }
 
-    override suspend fun getEstadisticas(): List<EstadisticaProducto> =
-        client.from("estadisticas_productos")
-            .select { order("ganancia", Order.DESCENDING) }
-            .decodeList<EstadisticaDto>()
+    // Pocas filas (producto x mes): el agrupado lo hace la base, la app solo filtra y suma
+    override suspend fun getEstadisticasMensuales(): List<EstadisticaMensual> =
+        client.from("estadisticas_mensuales")
+            .select { order("mes", Order.ASCENDING) }
+            .decodeList<EstadisticaMensualDto>()
             .map { it.toDomain() }
 }
