@@ -1,6 +1,6 @@
 package com.milagros.stockwise.fakes
 
-import com.milagros.stockwise.domain.model.EstadisticaProducto
+import com.milagros.stockwise.domain.model.EstadisticaMensual
 import com.milagros.stockwise.domain.repository.StockInsuficienteException
 import com.milagros.stockwise.domain.repository.VentaRepository
 
@@ -8,7 +8,7 @@ import com.milagros.stockwise.domain.repository.VentaRepository
 // como lo hace la función registrar_venta en la base.
 class FakeVentaRepository(
     private val productos: FakeProductoRepository,
-    var estadisticas: List<EstadisticaProducto> = emptyList(),
+    var estadisticas: List<EstadisticaMensual> = emptyList(),
 ) : VentaRepository {
 
     var fallarEnEstadisticas = false
@@ -21,7 +21,7 @@ class FakeVentaRepository(
         ventas += productoId to cantidad
     }
 
-    override suspend fun getEstadisticas(): List<EstadisticaProducto> {
+    override suspend fun getEstadisticasMensuales(): List<EstadisticaMensual> {
         if (fallarEnEstadisticas) throw RuntimeException("Error de red simulado")
         return estadisticas
     }
