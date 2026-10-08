@@ -13,7 +13,7 @@ data class ProductoDto(
     val cantidad: Int,
     @SerialName("stock_minimo") val stockMinimo: Int,
     val precio: Double,
-
+    val costo: Double = 0.0,
 )
 
 // Lo que ENVIAMOS al crear/editar (sin id: lo genera la base)
@@ -25,4 +25,15 @@ data class ProductoRequestDto(
     val cantidad: Int,
     @SerialName("stock_minimo") val stockMinimo: Int,
     val precio: Double,
+    val costo: Double,
+)
+
+// Una fila de la vista estadisticas_productos
+@Serializable
+data class EstadisticaDto(
+    val id: String,
+    val nombre: String,
+    val unidades: Long,
+    val ingresos: Double,
+    val ganancia: Double,
 )

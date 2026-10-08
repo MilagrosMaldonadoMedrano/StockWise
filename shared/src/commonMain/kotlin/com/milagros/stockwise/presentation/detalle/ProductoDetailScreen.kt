@@ -2,6 +2,8 @@ package com.milagros.stockwise.presentation.detalle
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -50,6 +52,7 @@ fun ProductoDetailScreen(
         onIncrementar = viewModel::incrementarStock,
         onDecrementar = viewModel::decrementarStock,
         onEliminar = viewModel::eliminarProducto,
+        onRegistrarVenta = viewModel::registrarVenta,
         onEliminado = onEliminado,
         onMensajeMostrado = viewModel::onMensajeMostrado,
     )
@@ -68,6 +71,7 @@ fun ProductoDetailContent(
     onIncrementar: () -> Unit,
     onDecrementar: () -> Unit,
     onEliminar: () -> Unit,
+    onRegistrarVenta: (cantidad: Int) -> Unit,
     onEliminado: (nombre: String) -> Unit,
     onMensajeMostrado: () -> Unit,
 ) {
@@ -76,6 +80,18 @@ fun ProductoDetailContent(
     // Estado puramente visual (¿está abierto el diálogo?): vive en la UI, no en el ViewModel.
     // rememberSaveable lo conserva si se rota la pantalla.
     var mostrarConfirmacion by rememberSaveable { mutableStateOf(false) }
+    var mostrarVenta by rememberSaveable { mutableStateOf(false) }
+
+    if (mostrarVenta && state is ProductoDetailUiState.Exito) {
+        DialogoVenta(
+            stockDisponible = state.producto.cantidad,
+            onConfirmar = { cantidad ->
+                mostrarVenta = false
+                onRegistrarVenta(cantidad)
+            },
+            onCancelar = { mostrarVenta = false },
+        )
+    }
 
     // Cuando el producto se eliminó, se avisa una sola vez para volver a la lista
     if (state is ProductoDetailUiState.Eliminado) {
@@ -167,6 +183,7 @@ fun ProductoDetailContent(
                     ajustando = state.ajustando || state.eliminando,
                     onIncrementar = onIncrementar,
                     onDecrementar = onDecrementar,
+                    onVender = { mostrarVenta = true },
                 )
             }
         }
@@ -179,6 +196,7 @@ private fun ProductoDetalle(
     ajustando: Boolean,
     onIncrementar: () -> Unit,
     onDecrementar: () -> Unit,
+    onVender: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -232,14 +250,60 @@ private fun ProductoDetalle(
             }
         }
 
+        Button(
+            onClick = onVender,
+            enabled = !ajustando && producto.cantidad > 0,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(if (producto.cantidad > 0) "Registrar venta" else "Sin stock para vender") }
+
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DatoFila("Precio", producto.precio.formatearPrecio())
+                DatoFila("Precio de venta", producto.precio.formatearPrecio())
+                DatoFila("Costo", if (producto.costo > 0) producto.costo.formatearPrecio() else "Sin cargar")
+                DatoFila("Ganancia por unidad", producto.gananciaUnitaria.formatearPrecio())
                 DatoFila("Stock mínimo", "${producto.stockMinimo} u.")
                 DatoFila("SKU", producto.sku ?: "—")
             }
         }
     }
+}
+
+// Pide la cantidad a vender. Valida en vivo para no dejar confirmar algo imposible.
+@Composable
+private fun DialogoVenta(
+    stockDisponible: Int,
+    onConfirmar: (cantidad: Int) -> Unit,
+    onCancelar: () -> Unit,
+) {
+    var texto by rememberSaveable { mutableStateOf("1") }
+    val cantidad = texto.trim().toIntOrNull()
+    val error = when {
+        cantidad == null || cantidad <= 0 -> "Ingresá una cantidad mayor a 0"
+        cantidad > stockDisponible -> "Solo hay $stockDisponible u. en stock"
+        else -> null
+    }
+
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = { Text("Registrar venta") },
+        text = {
+            OutlinedTextField(
+                value = texto,
+                onValueChange = { texto = it },
+                label = { Text("Unidades vendidas") },
+                isError = error != null,
+                supportingText = { Text(error ?: "Stock disponible: $stockDisponible u.") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { cantidad?.let(onConfirmar) }, enabled = error == null) { Text("Vender") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancelar) { Text("Cancelar") }
+        },
+    )
 }
 
 @Composable

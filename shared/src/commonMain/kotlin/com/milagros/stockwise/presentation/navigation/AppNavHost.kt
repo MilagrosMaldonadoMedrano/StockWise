@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.milagros.stockwise.presentation.detalle.ProductoDetailScreen
+import com.milagros.stockwise.presentation.estadisticas.EstadisticasScreen
 import com.milagros.stockwise.presentation.formulario.ProductoFormScreen
 import com.milagros.stockwise.presentation.lista.ProductoListScreen
 
@@ -35,6 +36,9 @@ fun AppNavHost() {
                 },
                 onNuevoProducto = {
                     entry.siEstaActiva { navController.navigate(ProductoFormRoute()) }
+                },
+                onEstadisticas = {
+                    entry.siEstaActiva { navController.navigate(EstadisticasRoute) }
                 },
                 mensaje = mensaje,
                 onMensajeMostrado = { entry.borrarMensaje() },
@@ -62,6 +66,9 @@ fun AppNavHost() {
                 onVolver = dropUnlessResumed { navController.popBackStack() },
                 onGuardado = { mensaje -> navController.volverConMensaje(mensaje) },
             )
+        }
+        composable<EstadisticasRoute> {
+            EstadisticasScreen(onVolver = dropUnlessResumed { navController.popBackStack() })
         }
     }
 }

@@ -6,6 +6,9 @@ import com.milagros.stockwise.domain.model.Producto
 import com.milagros.stockwise.domain.repository.ProductoRepository
 import com.milagros.stockwise.domain.usecase.AjustarStockUseCase
 import com.milagros.stockwise.domain.usecase.StockNegativoException
+import com.milagros.stockwise.domain.repository.StockInsuficienteException
+import com.milagros.stockwise.domain.usecase.CantidadInvalidaException
+import com.milagros.stockwise.domain.usecase.RegistrarVentaUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,6 +21,7 @@ class ProductoDetailViewModel(
     private val productoId: String,
     private val repository: ProductoRepository,
     private val ajustarStock: AjustarStockUseCase, //appModule se encarga de generarlo e inyectarlo
+    private val registrarVentaUseCase: RegistrarVentaUseCase,
 ) : ViewModel() {
 
     private val error = MutableStateFlow<String?>(null)
@@ -83,6 +87,29 @@ class ProductoDetailViewModel(
             } catch (e: Exception) {
                 // No se muestra e.message: trae detalles técnicos (URL, headers) que no son para el usuario
                 mensaje.value = "No se pudo actualizar el stock. Revisá tu conexión."
+            } finally {
+                ajustando.value = false
+            }
+        }
+    }
+
+    // Usa el mismo indicador "ajustando": una venta también es una operación sobre el stock
+    fun registrarVenta(cantidad: Int) {
+        val producto = (uiState.value as? ProductoDetailUiState.Exito)?.producto ?: return
+        if (ajustando.value || eliminando.value != null) return
+        viewModelScope.launch {
+            ajustando.value = true
+            try {
+                registrarVentaUseCase(producto, cantidad)
+                mensaje.value = "Venta registrada: $cantidad u."
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: StockInsuficienteException) {
+                mensaje.value = "No hay stock suficiente para esa venta"
+            } catch (e: CantidadInvalidaException) {
+                mensaje.value = "Ingresá una cantidad mayor a 0"
+            } catch (e: Exception) {
+                mensaje.value = "No se pudo registrar la venta. Revisá tu conexión."
             } finally {
                 ajustando.value = false
             }

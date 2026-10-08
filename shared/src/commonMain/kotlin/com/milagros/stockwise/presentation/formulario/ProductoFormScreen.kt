@@ -169,8 +169,17 @@ private fun Formulario(
         CampoTexto(
             valor = campos.precio,
             onValorChange = { onCamposChange(campos.copy(precio = it)) },
-            etiqueta = "Precio *",
+            etiqueta = "Precio de venta *",
             error = errores.precio,
+            habilitado = habilitado,
+            tipoTeclado = KeyboardType.Decimal,
+            prefijo = "$ ",
+        )
+        CampoTexto(
+            valor = campos.costo,
+            onValorChange = { onCamposChange(campos.copy(costo = it)) },
+            etiqueta = "Costo (opcional)",
+            error = errores.costo,
             habilitado = habilitado,
             tipoTeclado = KeyboardType.Decimal,
             prefijo = "$ ",

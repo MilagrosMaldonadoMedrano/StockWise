@@ -2,7 +2,9 @@
 
 import com.milagros.stockwise.domain.model.Producto
 import com.milagros.stockwise.domain.usecase.AjustarStockUseCase
+import com.milagros.stockwise.domain.usecase.RegistrarVentaUseCase
 import com.milagros.stockwise.fakes.FakeProductoRepository
+import com.milagros.stockwise.fakes.FakeVentaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -32,7 +34,36 @@ class ProductoDetailViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun crearViewModel(repository: FakeProductoRepository) =
-        ProductoDetailViewModel("1", repository, AjustarStockUseCase(repository))
+        ProductoDetailViewModel(
+            "1",
+            repository,
+            AjustarStockUseCase(repository),
+            RegistrarVentaUseCase(FakeVentaRepository(repository), repository),
+        )
+
+    @Test
+    fun registrarVenta_descuentaStockYMuestraMensaje() = runTest {
+        val viewModel = crearViewModel(FakeProductoRepository(listOf(cafe)))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.registrarVenta(2)
+
+        val estado = assertIs<ProductoDetailUiState.Exito>(viewModel.uiState.value)
+        assertEquals(3, estado.producto.cantidad)
+        assertEquals("Venta registrada: 2 u.", estado.mensaje)
+    }
+
+    @Test
+    fun registrarVentaMayorAlStock_muestraErrorYNoDescuenta() = runTest {
+        val viewModel = crearViewModel(FakeProductoRepository(listOf(cafe)))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.registrarVenta(10)
+
+        val estado = assertIs<ProductoDetailUiState.Exito>(viewModel.uiState.value)
+        assertEquals(5, estado.producto.cantidad)
+        assertEquals("No hay stock suficiente para esa venta", estado.mensaje)
+    }
 
     @Test
     fun alCargar_muestraElProducto() = runTest {

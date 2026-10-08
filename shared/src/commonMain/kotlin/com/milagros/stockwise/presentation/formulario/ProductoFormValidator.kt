@@ -18,6 +18,8 @@ fun validarProducto(campos: ProductoFormCampos, id: String? = null): ResultadoVa
     val stockMinimo = campos.stockMinimo.trim().toIntOrNull()
     // Acepta coma o punto como separador decimal ("1234,50" o "1234.50")
     val precio = campos.precio.trim().replace(',', '.').toDoubleOrNull()
+    // El costo es opcional: vacío = 0
+    val costo = if (campos.costo.isBlank()) 0.0 else campos.costo.trim().replace(',', '.').toDoubleOrNull()
 
     val errores = ProductoFormErrores(
         nombre = when {
@@ -34,6 +36,12 @@ fun validarProducto(campos: ProductoFormCampos, id: String? = null): ResultadoVa
             precio > PRECIO_MAX -> "Precio demasiado alto"
             else -> null
         },
+        costo = when {
+            costo == null -> "Ingresá un número (ej. 900,50)"
+            costo < 0 -> "No puede ser negativo"
+            costo > PRECIO_MAX -> "Costo demasiado alto"
+            else -> null
+        },
     )
     if (errores.hayErrores) return ResultadoValidacion.Invalido(errores)
 
@@ -46,6 +54,7 @@ fun validarProducto(campos: ProductoFormCampos, id: String? = null): ResultadoVa
             cantidad = cantidad!!,
             stockMinimo = stockMinimo!!,
             precio = precio!!,
+            costo = costo!!,
         )
     )
 }
@@ -64,6 +73,11 @@ fun Producto.toCampos() = ProductoFormCampos(
     categoria = categoria.orEmpty(),
     cantidad = cantidad.toString(),
     stockMinimo = stockMinimo.toString(),
-    // 6200.0 -> "6200"; 1234.5 -> "1234,5"
-    precio = if (precio % 1.0 == 0.0) precio.toLong().toString() else precio.toString().replace('.', ','),
+    precio = precio.aTextoDecimal(),
+    // Costo 0 = "sin cargar": el campo queda vacío
+    costo = if (costo == 0.0) "" else costo.aTextoDecimal(),
 )
+
+// 6200.0 -> "6200"; 1234.5 -> "1234,5"
+private fun Double.aTextoDecimal(): String =
+    if (this % 1.0 == 0.0) toLong().toString() else toString().replace('.', ',')

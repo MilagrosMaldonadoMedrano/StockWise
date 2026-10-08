@@ -13,3 +13,6 @@ data class ProductoDetailRoute(val id: String)
 // id == null -> crear un producto nuevo; con id -> editar ese producto
 @Serializable
 data class ProductoFormRoute(val id: String? = null)
+
+@Serializable
+data object EstadisticasRoute

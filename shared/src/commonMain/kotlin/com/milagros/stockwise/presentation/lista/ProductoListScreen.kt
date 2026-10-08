@@ -18,12 +18,14 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import stockwise.shared.generated.resources.Res
 import stockwise.shared.generated.resources.ic_add
+import stockwise.shared.generated.resources.ic_chart
 
 // Versión "con estado": obtiene el ViewModel y observa su estado
 @Composable
 fun ProductoListScreen(
     onProductoClick: (id: String) -> Unit,
     onNuevoProducto: () -> Unit,
+    onEstadisticas: () -> Unit,
     mensaje: String?,                // mensaje que llega de otra pantalla (ej. "producto eliminado")
     onMensajeMostrado: () -> Unit,
     viewModel: ProductoListViewModel = koinViewModel(),
@@ -34,6 +36,7 @@ fun ProductoListScreen(
         onReintentar = viewModel::cargarProductos,
         onProductoClick = onProductoClick,
         onNuevoProducto = onNuevoProducto,
+        onEstadisticas = onEstadisticas,
         mensaje = mensaje,
         onMensajeMostrado = onMensajeMostrado,
     )
@@ -47,6 +50,7 @@ fun ProductoListContent(
     onReintentar: () -> Unit,
     onProductoClick: (id: String) -> Unit,
     onNuevoProducto: () -> Unit,
+    onEstadisticas: () -> Unit,
     mensaje: String?,
     onMensajeMostrado: () -> Unit,
 ) {
@@ -68,7 +72,12 @@ fun ProductoListContent(
         topBar = {
             TopAppBar(
                 title = { Text("StockWise") },
-                actions = { TextButton(onClick = onReintentar) { Text("Actualizar") } },
+                actions = {
+                    TextButton(onClick = onReintentar) { Text("Actualizar") }
+                    IconButton(onClick = onEstadisticas) {
+                        Icon(painterResource(Res.drawable.ic_chart), contentDescription = "Ventas y ganancias")
+                    }
+                },
             )
         },
     ) { padding ->
