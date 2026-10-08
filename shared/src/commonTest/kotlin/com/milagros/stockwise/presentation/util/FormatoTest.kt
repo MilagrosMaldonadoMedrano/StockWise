@@ -29,4 +29,11 @@ class FormatoTest {
     fun precioMillonario_separaCadaTresCifras() {
         assertEquals("$ 1.500.000,00", 1_500_000.0.formatearPrecio())
     }
+
+    @Test
+    fun montoNegativo_ponElSignoAdelante() {
+        // Antes del arreglo, -123 se formateaba como "$ -.123,00"
+        assertEquals("-$ 123,00", (-123.0).formatearPrecio())
+        assertEquals("-$ 1.234,50", (-1234.5).formatearPrecio())
+    }
 }

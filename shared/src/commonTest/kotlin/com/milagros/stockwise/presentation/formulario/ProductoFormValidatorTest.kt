@@ -76,6 +76,24 @@ class ProductoFormValidatorTest {
     }
 
     @Test
+    fun costoVacio_esCero() {
+        val resultado = assertIs<ResultadoValidacion.Valido>(validarProducto(camposValidos.copy(costo = "")))
+        assertEquals(0.0, resultado.producto.costo)
+    }
+
+    @Test
+    fun costoConComa_seConvierte() {
+        val resultado = assertIs<ResultadoValidacion.Valido>(validarProducto(camposValidos.copy(costo = "3000,25")))
+        assertEquals(3000.25, resultado.producto.costo)
+    }
+
+    @Test
+    fun costoNegativo_esInvalido() {
+        val errores = assertIs<ResultadoValidacion.Invalido>(validarProducto(camposValidos.copy(costo = "-5"))).errores
+        assertEquals("No puede ser negativo", errores.costo)
+    }
+
+    @Test
     fun toCampos_convierteUnProductoParaEditar() {
         val producto = Producto(id = "1", nombre = "Café", cantidad = 5, stockMinimo = 8, precio = 1234.5)
 
