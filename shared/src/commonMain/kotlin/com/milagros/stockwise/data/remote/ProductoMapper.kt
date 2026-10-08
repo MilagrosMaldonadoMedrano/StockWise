@@ -1,5 +1,6 @@
 package com.milagros.stockwise.data.remote
 
+import com.milagros.stockwise.domain.model.EstadisticaProducto
 import com.milagros.stockwise.domain.model.Producto
 
 fun ProductoDto.toDomain() = Producto(
@@ -10,6 +11,7 @@ fun ProductoDto.toDomain() = Producto(
     cantidad = cantidad,
     stockMinimo = stockMinimo,
     precio = precio,
+    costo = costo,
 )
 
 fun Producto.toRequest() = ProductoRequestDto(
@@ -19,4 +21,13 @@ fun Producto.toRequest() = ProductoRequestDto(
     cantidad = cantidad,
     stockMinimo = stockMinimo,
     precio = precio,
+    costo = costo,
+)
+
+fun EstadisticaDto.toDomain() = EstadisticaProducto(
+    productoId = id,
+    nombre = nombre,
+    unidades = unidades,
+    ingresos = ingresos,
+    ganancia = ganancia,
 )

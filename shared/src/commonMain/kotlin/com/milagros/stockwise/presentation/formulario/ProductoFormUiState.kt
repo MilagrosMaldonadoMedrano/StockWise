@@ -9,6 +9,7 @@ data class ProductoFormCampos(
     val cantidad: String = "",
     val stockMinimo: String = "",
     val precio: String = "",
+    val costo: String = "",
 )
 
 // Mensaje de error de cada campo (null = sin error)
@@ -18,9 +19,10 @@ data class ProductoFormErrores(
     val cantidad: String? = null,
     val stockMinimo: String? = null,
     val precio: String? = null,
+    val costo: String? = null,
 ) {
     val hayErrores: Boolean
-        get() = listOf(nombre, sku, cantidad, stockMinimo, precio).any { it != null }
+        get() = listOf(nombre, sku, cantidad, stockMinimo, precio, costo).any { it != null }
 }
 
 // A diferencia de lista y detalle, acá no es un sealed interface: el formulario siempre

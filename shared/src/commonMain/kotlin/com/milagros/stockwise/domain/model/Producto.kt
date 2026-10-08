@@ -8,6 +8,10 @@ data class Producto(
     val cantidad: Int,
     val stockMinimo: Int,
     val precio: Double,
+    val costo: Double = 0.0, // costo de compra por unidad
 ) {
     val tieneStockBajo: Boolean get() = cantidad <= stockMinimo
+
+    // Ganancia por cada unidad vendida al precio actual
+    val gananciaUnitaria: Double get() = precio - costo
 }
