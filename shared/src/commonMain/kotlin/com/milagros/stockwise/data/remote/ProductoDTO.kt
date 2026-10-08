@@ -28,11 +28,12 @@ data class ProductoRequestDto(
     val costo: Double,
 )
 
-// Una fila de la vista estadisticas_productos
+// Una fila de la vista estadisticas_mensuales
 @Serializable
-data class EstadisticaDto(
-    val id: String,
+data class EstadisticaMensualDto(
+    @SerialName("producto_id") val productoId: String,
     val nombre: String,
+    val mes: String,
     val unidades: Long,
     val ingresos: Double,
     val ganancia: Double,

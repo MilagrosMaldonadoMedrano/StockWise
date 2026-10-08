@@ -16,7 +16,7 @@ Permite administrar productos (alta, edición, baja y ajuste de stock con alerta
 | **Lista** | Productos ordenados por nombre, alerta de stock bajo, estados de carga, vacío y error con reintento |
 | **Detalle** | Ajuste de stock (+/−), registro de ventas con validación en vivo, costo y ganancia por unidad, eliminación con confirmación |
 | **Formulario** | Crear y editar con validación por campo, teclado numérico y detección de SKU duplicado |
-| **Ventas y ganancias** | Ganancia total, ingresos, unidades vendidas y ranking de productos por ganancia |
+| **Ventas y ganancias** | Gráfico de ganancia por mes (últimos 6 meses, animado). Tocar un mes filtra los totales y el ranking de productos por ganancia |
 
 ## Arquitectura
 
@@ -61,7 +61,8 @@ flowchart TD
 | --- | --- |
 | **Supabase** en lugar de Firebase | `supabase-kt` es nativo de KMP; Firebase no tiene SDK oficial multiplataforma. Postgres aporta restricciones (`check`, `unique`, claves foráneas) y RLS |
 | **Venta como función de Postgres** (`registrar_venta`, RPC) | Descuenta stock y registra la venta en **una transacción**: sin estados intermedios si se corta la red, y sin carreras entre dispositivos |
-| **Estadísticas en una vista SQL** | El agregado se calcula en la base: viajan pocas filas aunque haya miles de ventas. Cada venta copia el precio y el costo del momento, así la historia no cambia si cambian los precios |
+| **Estadísticas en una vista SQL** | El agregado por producto y mes se calcula en la base (en hora de Argentina, porque la base guarda en UTC): viajan pocas filas aunque haya miles de ventas. Cada venta copia el precio y el costo del momento, así la historia no cambia si cambian los precios |
+| **Gráficos con Compose, sin librerías** | Sin dependencias extra ni riesgo de compatibilidad en iOS. Las barras animan su altura, tienen `contentDescription` para accesibilidad y el eje muestra meses consecutivos (los meses sin ventas aparecen en 0) |
 | **Validación en app y en base** | La app responde al instante sin ir a la red; la base es la última barrera (`check (cantidad >= 0)`) |
 | **Navegación type-safe** (`@Serializable` routes) | Los parámetros se verifican al compilar. Los resultados entre pantallas viajan por el `SavedStateHandle` de la entrada anterior |
 | **Koin** | Hilt no soporta KMP. Koin es multiplataforma y se integra con `ViewModel` y Compose |
@@ -71,7 +72,7 @@ flowchart TD
 
 ## Calidad
 
-- **42 unit tests** en `commonTest` (casos de uso, ViewModels, validador, formato). Corren en Android (JVM) y en iOS (Kotlin/Native), con repositorios falsos en memoria y `kotlinx-coroutines-test`.
+- **51 unit tests** en `commonTest` (casos de uso, ViewModels, armado del dashboard, validador, formato). Corren en Android (JVM) y en iOS (Kotlin/Native), con repositorios falsos en memoria y `kotlinx-coroutines-test`.
 - **CI con GitHub Actions** en cada push y PR: tests + APK descargable en `ubuntu-latest`, framework iOS + tests en el simulador en `macos-latest`.
 - **QA manual en emulador** contra Supabase real, incluidos casos borde: doble toque en navegación (`dropUnlessResumed`), toques rápidos durante una operación, errores de red, SKU duplicado y venta sin stock.
 - **Git:** Conventional Commits, una rama y un Pull Request por funcionalidad, merge con CI en verde.
@@ -119,7 +120,7 @@ cd StockWise
 
 **iOS:** abrir `iosApp/iosApp.xcodeproj` en Xcode y ejecutar.
 
-**Backend:** la app apunta a un proyecto de Supabase ya configurado, así que no requiere setup. Para recrearlo: tabla `productos` (`id uuid`, `nombre`, `sku unique`, `categoria`, `cantidad`, `stock_minimo`, `precio numeric(12,2)` con `check` ≥ 0) y luego [`supabase/ventas.sql`](supabase/ventas.sql) (costo, ventas, función y vista).
+**Backend:** la app apunta a un proyecto de Supabase ya configurado, así que no requiere setup. Para recrearlo: tabla `productos` (`id uuid`, `nombre`, `sku unique`, `categoria`, `cantidad`, `stock_minimo`, `precio numeric(12,2)` con `check` ≥ 0) y luego, en orden, [`supabase/ventas.sql`](supabase/ventas.sql) (costo, ventas y función) y [`supabase/estadisticas_mensuales.sql`](supabase/estadisticas_mensuales.sql) (vista por mes). [`supabase/datos_demo.sql`](supabase/datos_demo.sql) carga ventas históricas de ejemplo (opcional).
 
 > Usar Gradle 9.5.1, la versión del wrapper. Con 9.8.0 el Sync de IntelliJ falla.
 

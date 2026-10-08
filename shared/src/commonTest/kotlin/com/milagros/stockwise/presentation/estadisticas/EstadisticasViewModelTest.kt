@@ -1,6 +1,6 @@
 package com.milagros.stockwise.presentation.estadisticas
 
-import com.milagros.stockwise.domain.model.EstadisticaProducto
+import com.milagros.stockwise.domain.model.EstadisticaMensual
 import com.milagros.stockwise.fakes.FakeProductoRepository
 import com.milagros.stockwise.fakes.FakeVentaRepository
 import kotlinx.coroutines.Dispatchers
@@ -14,13 +14,15 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EstadisticasViewModelTest {
 
-    private val estadisticas = listOf(
-        EstadisticaProducto("1", "Café", unidades = 4, ingresos = 24800.0, ganancia = 8800.0),
-        EstadisticaProducto("2", "Yerba", unidades = 10, ingresos = 45000.0, ganancia = 5000.0),
+    private val filas = listOf(
+        EstadisticaMensual("1", "Café", "2026-09", unidades = 2, ingresos = 12400.0, ganancia = 4400.0),
+        EstadisticaMensual("1", "Café", "2026-10", unidades = 2, ingresos = 12400.0, ganancia = 4400.0),
+        EstadisticaMensual("2", "Yerba", "2026-10", unidades = 10, ingresos = 45000.0, ganancia = 5000.0),
     )
 
     @BeforeTest
@@ -29,17 +31,40 @@ class EstadisticasViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun ventas(lista: List<EstadisticaProducto>) = FakeVentaRepository(FakeProductoRepository(), lista)
+    private fun ventas(lista: List<EstadisticaMensual>) = FakeVentaRepository(FakeProductoRepository(), lista)
 
     @Test
-    fun conVentas_calculaLosTotales() = runTest {
-        val viewModel = EstadisticasViewModel(ventas(estadisticas))
+    fun alCargar_muestraTodosLosMeses() = runTest {
+        val viewModel = EstadisticasViewModel(ventas(filas))
 
         val estado = assertIs<EstadisticasUiState.Exito>(viewModel.uiState.value)
+        assertNull(estado.mesSeleccionado)
         assertEquals(69800.0, estado.ingresosTotales)
         assertEquals(13800.0, estado.gananciaTotal)
         assertEquals(14L, estado.unidadesTotales)
-        assertEquals(8800.0, estado.gananciaMaxima)
+    }
+
+    @Test
+    fun seleccionarMes_filtraTotalesYRanking() = runTest {
+        val viewModel = EstadisticasViewModel(ventas(filas))
+
+        viewModel.seleccionarMes("2026-09")
+
+        val estado = assertIs<EstadisticasUiState.Exito>(viewModel.uiState.value)
+        assertEquals("2026-09", estado.mesSeleccionado)
+        assertEquals(4400.0, estado.gananciaTotal)
+        assertEquals(listOf("Café"), estado.productos.map { it.nombre })
+    }
+
+    @Test
+    fun seleccionarElMismoMes_vuelveATodos() = runTest {
+        val viewModel = EstadisticasViewModel(ventas(filas))
+
+        viewModel.seleccionarMes("2026-10")
+        viewModel.seleccionarMes("2026-10")
+
+        val estado = assertIs<EstadisticasUiState.Exito>(viewModel.uiState.value)
+        assertNull(estado.mesSeleccionado)
     }
 
     @Test
@@ -51,7 +76,7 @@ class EstadisticasViewModelTest {
 
     @Test
     fun errorDeRed_muestraErrorYReintentarFunciona() = runTest {
-        val repository = ventas(estadisticas).apply { fallarEnEstadisticas = true }
+        val repository = ventas(filas).apply { fallarEnEstadisticas = true }
         val viewModel = EstadisticasViewModel(repository)
         assertIs<EstadisticasUiState.Error>(viewModel.uiState.value)
 
@@ -59,14 +84,5 @@ class EstadisticasViewModelTest {
         viewModel.cargar()
 
         assertIs<EstadisticasUiState.Exito>(viewModel.uiState.value)
-    }
-
-    @Test
-    fun gananciaNegativa_noAlargaLaBarraMaxima() = runTest {
-        val conPerdida = listOf(EstadisticaProducto("3", "Leche", unidades = 2, ingresos = 1000.0, ganancia = -200.0))
-        val viewModel = EstadisticasViewModel(ventas(conPerdida))
-
-        val estado = assertIs<EstadisticasUiState.Exito>(viewModel.uiState.value)
-        assertEquals(0.0, estado.gananciaMaxima)
     }
 }
